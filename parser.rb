@@ -3,6 +3,8 @@ require "nokogiri"
 require 'open-uri'
 require 'byebug'
 require "csv"
+require "json"
+require 'spreadsheet'
 
 class Parser
   PRODUCT_BLOCK_PATH = ".//*[@id='center_column']/div[3]/div/div/div/div[2]"
@@ -27,14 +29,73 @@ class Parser
 		parse_catalog_page(ARGV[0])
 	end
 
+	def write_to_excel
+		Spreadsheet.client_encoding = 'UTF-8'
+		book = Spreadsheet::Workbook.new
+		sheet1 = book.create_worksheet
+		sheet1.name = '1'
+		@items.flatten!
+		@items.each.with_index do |item, i|
+			sheet1[i,0] = item[:name]
+			sheet1[i,2] = item[:price]
+			sheet1[i,4] = item[:image]
+	  	end
+		book.write 'products.xls'
+	end
+
+	def parse_excel_book
+		workbook=Spreadsheet.open 'products.xls'
+		sheet1 = workbook.worksheet '1'
+		sheet1.each do |row|
+		  puts "#{row[0]} - #{row[2]} - #{row[4]}"
+		end
+	end	
+		
 	def write_to_csv
-	  @items.flatten! 
+	    @items.flatten! 
 		CSV.open(ARGV[1], "wb") do |csv|
 	  		csv << ["name", "price", "image"]
 	  		@items.each do |item|
 	  		 	csv << [item[:name],item[:price],item[:image]]  
 	  		end
 		end
+	end	
+
+	def parse_csv_file
+		CSV.foreach("lol.csv", "r") do |row|
+			puts row
+		end 
+	end
+		
+	def write_to_json
+		@items.flatten!
+		file = File.new("my_json_data_file.json", "wb")
+		file.write(@items.to_json)
+		file.close
+	end	
+
+	def parse_json_file
+		file = File.read("my_json_data_file.json")
+		data = JSON.parse(file)
+		puts data
+	end	
+
+	def write_to_xml
+        @items.flatten! 
+			builder = Nokogiri::XML::Builder.new do |xml|
+			  xml.root {
+			    @items.each do |item|
+				    xml.products {
+					        xml.name_  item[:name]
+					        xml.price_ item[:price]
+					    	xml.img_   item[:image]
+				    }
+				end
+			  }
+		end
+		file = File.new("my_xml_product_file.xml", "wb")
+		file.write(builder.to_xml)
+		file.close
 	end	
 
   private
@@ -48,7 +109,7 @@ class Parser
 
 		next_page_relative_link = page.xpath(".//*[@id='pagination_next_bottom']/a/@href").text
 		next_page_link = HOST + next_page_relative_link	
-		parse_catalog_page(next_page_link) unless next_page_relative_link.empty?
+		#parse_catalog_page(next_page_link) unless next_page_relative_link.empty?
 	end
 
 	def get_multi_product(product_link)
@@ -72,5 +133,11 @@ class Parser
 end
 
 parser = Parser.new
-parser.start
-parser.write_to_csv
+#parser.start
+#parser.parse_excel_book
+#parser.write_to_csv
+#parser.write_to_excel
+#parser.write_to_xml
+#parser.write_to_json
+#parser.parse_csv_file
+parser.parse_json_file
