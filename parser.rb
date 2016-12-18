@@ -98,6 +98,12 @@ class Parser
 		file.close
 	end	
 
+	def parse_xml_file
+		doc= Nokogiri::XML(File.open("my_xml_product_file.xml"))
+		doc.xpath("//products").each.with_index do |pr,i|
+			puts pr.xpath("//name[#{i}]")	
+		end	
+	end	
   private
 
 	def parse_catalog_page(catalog_link)
@@ -109,7 +115,7 @@ class Parser
 
 		next_page_relative_link = page.xpath(".//*[@id='pagination_next_bottom']/a/@href").text
 		next_page_link = HOST + next_page_relative_link	
-		#parse_catalog_page(next_page_link) unless next_page_relative_link.empty?
+		parse_catalog_page(next_page_link) unless next_page_relative_link.empty?
 	end
 
 	def get_multi_product(product_link)
@@ -125,7 +131,7 @@ class Parser
     attribute = product.xpath(".//li/span[@class='attribute_name']").text
     variant = {
       name: page.xpath(PRODUCT_NAME_PATH).text + " " + attribute,
-      price: product.xpath(".//li/span[3]").text,
+      price: product.xpath(".//li/span[2]").text,
       image: page.xpath(PRODUCT_IMAGE_PATH).text,
     }
 	end
@@ -133,11 +139,12 @@ class Parser
 end
 
 parser = Parser.new
-#parser.start
-#parser.parse_excel_book
+parser.start
 #parser.write_to_csv
-#parser.write_to_excel
+parser.write_to_excel
 #parser.write_to_xml
 #parser.write_to_json
 #parser.parse_csv_file
-parser.parse_json_file
+#parser.parse_excel_book
+#parser.parse_xml_file
+#parser.parse_json_file
